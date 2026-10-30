@@ -1,0 +1,51 @@
+
+name: Publish DZ from MovieQuest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,37 * * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dz-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout MovieQuest source
+        uses: actions/checkout@v4
+        with:
+          repository: movieqst/MovieQuest
+          ref: main
+          path: source
+          persist-credentials: false
+
+      - name: Prepare DZ website
+        run: |
+          mkdir -p site
+          cp -a source/dz/. site/
+          printf '%s\n' 'dz.moviequest.ca' > site/CNAME
+          touch site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
